@@ -5,33 +5,33 @@ var cal = Calendar.getInstance()
 var today = dateformat.format(cal.getTime())
 
 var hc = new org.apache.spark.sql.hive.HiveContext(sc)
-// ¹ıÂËĞÂ½®Óë¹úÍâÍ¨»°µÄÊı¾İ¡£¼´Í¨»°Ò»·½ÎªĞÂ½®¹éÊôµØ£¬ÁíÒ»·½ºÅÂë¿ªÍ·Îª00
-// ²¢Ôö¼ÓĞÂ½®ºÅÂë×Ö¶ÎºÍ¹úÍâºÅÂë×Ö¶Î
-// ÏÂÃæÓï¾äÃ»ÓĞ¼ÓÊ±¼ä·¶Î§Ìõ¼ş£¬ÕâÀïÒª¼Ó½üÒ»ÖÜ£¬·ÖÎö½üÒ»ÖÜµÄÊı¾İ
-// È¥³ıÖØµãÈËµÄÍ¨»°Êı¾İ¡£Èç¹û°üº¬ÖØµãÈËµÄÊı¾İ£¬ÓĞ¿ÉÄÜÍÚ¾òµ½µÄÒÉËÆÈË±¾À´¾ÍÊÇÖØµãÈË
-// ÕâÀïÈ¥³ıµÄ·½·¨Îª£ºÏÈÈ¡È«¼¯£¬ÔÙ´ÓÈ«¼¯ÖĞÈ¥³ıÊÇÖØµãÈËµÄÍ¨»°Êı¾İ¡£ÕâÃ´×öµÄÔ­ÒòÊÇ£¬ÔÚhive sqlÖĞ²»ÄÜÓÃ¡°×Ö¶ÎA!=×Ö¶ÎB¡±µÄwhereÌõ¼ş£¬¡°=¡±ÆäÊµÊÇjoinÌõ¼şµÄËõĞ´£¬Èç¹ûÓÃ¡°!=¡±ÆäÊµÊÇÖ¸joinÌõ¼şÎª²»µÈÓÚ
+// è¿‡æ»¤xjä¸å›½å¤–é€šè¯çš„æ•°æ®ã€‚å³é€šè¯ä¸€æ–¹ä¸ºxjï¼Œå¦ä¸€æ–¹å·ç å¼€å¤´ä¸º00
+// å¹¶å¢åŠ xjå·ç å­—æ®µå’Œå›½å¤–å·ç å­—æ®µ
+// ä¸‹é¢è¯­å¥æ²¡æœ‰åŠ æ—¶é—´èŒƒå›´æ¡ä»¶ï¼Œè¿™é‡Œè¦åŠ è¿‘ä¸€å‘¨ï¼Œåˆ†æè¿‘ä¸€å‘¨çš„æ•°æ®
+// å»é™¤vipçš„é€šè¯æ•°æ®ã€‚å¦‚æœåŒ…å«vipçš„æ•°æ®ï¼Œæœ‰å¯èƒ½æŒ–æ˜åˆ°çš„ysræœ¬æ¥å°±æ˜¯vip
+// è¿™é‡Œå»é™¤çš„æ–¹æ³•ä¸ºï¼šå…ˆå–å…¨é›†ï¼Œå†ä»å…¨é›†ä¸­å»é™¤æ˜¯vipçš„é€šè¯æ•°æ®ã€‚è¿™ä¹ˆåšçš„åŸå› æ˜¯ï¼Œåœ¨hive sqlä¸­ä¸èƒ½ç”¨â€œå­—æ®µA!=å­—æ®µBâ€çš„whereæ¡ä»¶ï¼Œâ€œ=â€å…¶å®æ˜¯joinæ¡ä»¶çš„ç¼©å†™ï¼Œå¦‚æœç”¨â€œ!=â€å…¶å®æ˜¯æŒ‡joinæ¡ä»¶ä¸ºä¸ç­‰äº
 var xj2FDataAll = hc.sql("select i.calling_number,i.called_number,i.calling_number as xj_phone,i.called_number as f_phone from ren.bicc_isup_less as i,ren.xjindex as h where substr(i.calling_number,-11,7)=h.section and substr(i.called_number,0,2)='00' union all select i.calling_number,i.called_number,i.called_number as xj_phone,i.calling_number as f_phone from ren.bicc_isup_less as i,ren.xjindex as h where substr(i.called_number,-11,7)=h.section and substr(i.calling_number,0,2)='00'")
 xj2FDataAll.registerTempTable("xj2FDataAll")
 
-// ÖØµãÈËµÄÊı¾İ£¬¼´ºôÈëÎªÖØµãÈËºÅ + ºô³öÎªÖØµãÈËºÅ
+// vipçš„æ•°æ®ï¼Œå³å‘¼å…¥ä¸ºvipå· + å‘¼å‡ºä¸ºvipå·
 var xj2FDataVip = hc.sql("select xjAll.* from xj2FDataAll as xjAll,ren.vipblack as vb where xjAll.calling_number=vb.phoneNum union all select xjAll.* from xj2FDataAll as xjAll,ren.vipblack as vb where xjAll.called_number=vb.phoneNum")
 xj2FDataVip.registerTempTable("xj2FDataVip")
 
-// ´ÓÈ«¼¯ÖĞÈ¥³ıÖØµãÈËÆô¶¯Êı¾İ
+// ä»å…¨é›†ä¸­å»é™¤vipæ•°æ®
 var xj2FData=xj2FDataAll.except(xj2FDataVip)
 xj2FData.registerTempTable("xj2FData")
 
-// ¹ıÂËÓë¹Ø×¢¹ú¼ÒµÄÍ¨»°£¬²¢°´ĞÂ½®ºÅÂë·Ö×éÍ³¼Æ¡£×¢Òâ£ºµ±Ç°Ã»ÓĞÍ³°´¹ú¼Ò·Ö±ğ½øĞĞÍ³¼Æ
+// è¿‡æ»¤ä¸å…³æ³¨å›½å®¶çš„é€šè¯ï¼Œå¹¶æŒ‰xjå·ç åˆ†ç»„ç»Ÿè®¡ã€‚æ³¨æ„ï¼šå½“å‰æ²¡æœ‰ç»ŸæŒ‰å›½å®¶åˆ†åˆ«è¿›è¡Œç»Ÿè®¡
 var xjSus = hc.sql("select first(xj.xj_phone) as xj_phone,first(xj.f_phone) as f_phone,count(*) as com_count from xj2FData as xj,ren.special_country as c where substr(xj.f_phone,3,4)=c.code or substr(xj.f_phone,3,3)=c.code or substr(xj.f_phone,3,2)=c.code or substr(xj.f_phone,3,1)=c.code group by xj.xj_phone order by com_count desc limit 100")
 xjSus.registerTempTable("xjSus")
 
 
-// ´ÓÔ­Ê¼Êı¾İÖĞ»ñÈ¡ÒÉËÆÈËÓëÖØµãÈËµÄÍ¨»°Êı¾İ
+// ä»åŸå§‹æ•°æ®ä¸­è·å–ysrä¸vipçš„é€šè¯æ•°æ®
 var sus2vipData = hc.sql("select bi.calling_number,bi.called_number,xjs.xj_phone,xjs.f_phone,xjs.com_count,vb.phoneNum as vip_black_phone from ren.bicc_isup_less as bi,xjSus as xjs,ren.vipblack as vb where bi.calling_number=xjs.xj_phone and bi.called_number=vb.phoneNum union all select bi.calling_number,bi.called_number,xjs.xj_phone,xjs.f_phone,xjs.com_count,vb.phoneNum as vip_black_phone from ren.bicc_isup_less as bi,xjSus as xjs,ren.vipblack as vb where bi.called_number=xjs.xj_phone and bi.calling_number=vb.phoneNum")
 sus2vipData.registerTempTable("sus2vipData")
 
-// ½«ÒÉËÆÈËÓëÖØµãÈËÍ¨»°Êı¾İ£¬°´ÒÉËÆÈË·Ö×éÍ³¼ÆÍ¨»°´ÎÊı²¢ÅÅĞò,»ñÈ¡Ç°20¸öÎªÒÉËÆÈË
-// ×¢Òâ£¬´ËÊ±¿ÉÄÜ²»¹»20¸ö£¬¼´ÓëÖØµãÈËÓĞÁªÏµµÄÏÓÒÉÈË²»×ã20¸ö£¬ËùÒÔÒª´ÓÔ­À´µÄÏÓÒÉÈËÖĞ²¹Æë20¸ö
+// å°†ysrä¸vipé€šè¯æ•°æ®ï¼ŒæŒ‰ysråˆ†ç»„ç»Ÿè®¡é€šè¯æ¬¡æ•°å¹¶æ’åº,è·å–å‰20ä¸ªä¸ºysr
+// æ³¨æ„ï¼Œæ­¤æ—¶å¯èƒ½ä¸å¤Ÿ20ä¸ªï¼Œå³ä¸vipæœ‰è”ç³»çš„ysrè¶³20ä¸ªï¼Œæ‰€ä»¥è¦ä»åŸæ¥çš„ysrä¸­è¡¥é½20ä¸ª
 var comVipSus = hc.sql("select first(xj_phone) as xj_phone,first(f_phone) as f_phone,first(com_count) as com_count,count(*) as com2vip_count from sus2vipData group by xj_phone order by com2vip_count desc limit 20")
 
 comVipSus.registerTempTable("comVipSus")
@@ -39,6 +39,6 @@ comVipSus.registerTempTable("comVipSus")
 var xjSusAndComVip = hc.sql("select xjSus.*,IF(comVipSus.com2vip_count is null,0,comVipSus.com2vip_count) as com2vip_count from xjSus left join comVipSus on xjSus.xj_phone=comVipSus.xj_phone order by com2vip_count desc,com_count desc limit 20")
 xjSusAndComVip.registerTempTable("xjSusAndComVip")
 
-// Éú³ÉÒÉËÆÖØµãÈË±í£¬×îÆµ·±¹ú¼ÒÔİÊ±Îª¿Õ(È«ÉèÎª¹úÍâ)£¬×îÆµ·±ÁªÏµµÄÖØµãÈËÎª¿Õ
-var vip_suspicious = hc.sql("select vb.xj_phone as sus_vip_num,i.city as phone_location,i.operator as phone_provider,'¹úÍâ' as frequency_country,null as frequency_vip,'"+ today +"' as find_time from xjSusAndComVip as vb,ren.xjindex as i where substr(vb.xj_phone,-11,7)=i.section").show
+// ç”Ÿæˆysvipï¼Œæœ€é¢‘ç¹å›½å®¶æš‚æ—¶ä¸ºç©º(å…¨è®¾ä¸ºå›½å¤–)ï¼Œæœ€é¢‘ç¹commçš„vipä¸ºç©º
+var vip_suspicious = hc.sql("select vb.xj_phone as sus_vip_num,i.city as phone_location,i.operator as phone_provider,'å›½å¤–' as frequency_country,null as frequency_vip,'"+ today +"' as find_time from xjSusAndComVip as vb,ren.xjindex as i where substr(vb.xj_phone,-11,7)=i.section").show
 
