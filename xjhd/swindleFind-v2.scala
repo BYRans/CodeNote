@@ -5,27 +5,27 @@ var cal = Calendar.getInstance()
 var today = dateformat.format(cal.getTime())
 
 var hc = new org.apache.spark.sql.hive.HiveContext(sc)
-//  ¹ıÂËĞÂ½®µÄÊı¾İ£¬ÎªÁË±ÜÃâÊ¹ÓÃor£¬ÕâÀïÓÃµÄÊÇunion all¡£whereÌõ¼şÊÇÅĞ¶Ïºô³öºôÈëºÅÂëÓĞÒ»¸öÎªĞÂ½®µÄÊı¾İ¡£×¢ÒâÕâÀïµÄºÅÂë¶Î±íÓÃµÄÊÇphoneindex£¬Ó¦¸ÃĞŞ¸ÄÎªxinjiang_phoneindex
+//  è¿‡æ»¤xjçš„æ•°æ®ï¼Œä¸ºäº†é¿å…ä½¿ç”¨orï¼Œè¿™é‡Œç”¨çš„æ˜¯union allã€‚whereæ¡ä»¶æ˜¯åˆ¤æ–­å‘¼å‡ºå‘¼å…¥å·ç æœ‰ä¸€ä¸ªä¸ºxjçš„æ•°æ®ã€‚
 var xjData = hc.sql("select from_unixtime(ceil(i.btime/1000),'yyyy-MM-dd-HH') as time_Stamp,i.calling_number,i.called_number from ren.bicc_isup_less as i,ren.phoneindex as h where substr(i.calling_number,-11,7)=h.section union all select from_unixtime(ceil(i.btime/1000),'yyyy-MM-dd-HH') as time_Stamp,i.calling_number,i.called_number from ren.bicc_isup_less as i,ren.phoneindex as h where substr(i.called_number,-11,7)=h.section ")
 xjData.registerTempTable("xjData")
 
-// Í³¼ÆÃ¿¸öºÅÂëºô³öµÄ´ÎÊı
+// ç»Ÿè®¡æ¯ä¸ªå·ç å‘¼å‡ºçš„æ¬¡æ•°
 var callout = hc.sql("select count(*) as callOutCount,calling_number as phoneNum from xjData group by calling_number")
 callout.registerTempTable("callout")
 
-// Í³¼ÆÃ¿¸öºÅÂëºôÈëµÄ´ÎÊı
+// ç»Ÿè®¡æ¯ä¸ªå·ç å‘¼å…¥çš„æ¬¡æ•°
 var callin = hc.sql("select count(*) as callInCount,called_number as phoneNum from xjData group by called_number")
 callin.registerTempTable("callin")
 
 
-// °´ºÅÂëºÏ²¢ºôÈëºô³ö´ÎÊı,¼ÆËã±ÈÖµ£¨ÕâÀïÓÃµÄjoin£¬¿ÉÄÜ»á¶ªÊı¾İ£©,Ìí¼Ó·¢ÏÖÊ±¼ä×Ö¶Î¡£×¢Òâ£ºÕâÀïÎªÁË±£Ö¤Ö»ÓĞ´ò³öÃ»ÓĞ½ÓÈëµÄºÅÂë£¬ÒªÓÃ´ò³öµç»°µÄºÅÂë¼¯ºÏleft join´òÈëµÄºÅÂë¼¯ºÏ¡£ÒòÎªÊ¹ÓÃÁËleft join£¬ÔÚ½ÓÈëµç»°´ÎÊıÕâ¸ö×Ö¶Î¾Í¿ÉÄÜ³öÏÖnullÖµ£¬¹ÊĞèÒª¶ÔcallInCountÕâ¸öÖµ½øĞĞnullÖµÅĞ¶Ï£¬Èç¹ûÎªnullÔòÉèÎª1
+// æŒ‰å·ç åˆå¹¶å‘¼å…¥å‘¼å‡ºæ¬¡æ•°,è®¡ç®—æ¯”å€¼ï¼ˆè¿™é‡Œç”¨çš„joinï¼Œå¯èƒ½ä¼šä¸¢æ•°æ®ï¼‰,æ·»åŠ å‘ç°æ—¶é—´å­—æ®µã€‚æ³¨æ„ï¼šè¿™é‡Œä¸ºäº†ä¿è¯åªæœ‰æ‰“å‡ºæ²¡æœ‰æ¥å…¥çš„å·ç ï¼Œè¦ç”¨æ‰“å‡ºç”µè¯çš„å·ç é›†åˆleft joinæ‰“å…¥çš„å·ç é›†åˆã€‚å› ä¸ºä½¿ç”¨äº†left joinï¼Œåœ¨æ¥å…¥ç”µè¯æ¬¡æ•°è¿™ä¸ªå­—æ®µå°±å¯èƒ½å‡ºç°nullå€¼ï¼Œæ•…éœ€è¦å¯¹callInCountè¿™ä¸ªå€¼è¿›è¡Œnullå€¼åˆ¤æ–­ï¼Œå¦‚æœä¸ºnullåˆ™è®¾ä¸º1
 var callOutIn = hc.sql("select callOut.phoneNum as sus_swindle_num, ceil(IF(callIn.callInCount is null,1,callIn.callInCount)/callout.callOutCount) as inDivOut,(callOut.callOutCount+IF(callIn.callInCount is null,1,callIn.callInCount)) as day_count,'"+ today +"' as find_time from callOut left join callIn on callIn.phoneNum=callOut.phoneNum")
 callOutIn.registerTempTable("callOutIn")
 
-// ¸ù¾İÏÓÒÉÈËÕ©Æ­¹æÔò¹ıÂË³öÏÓÒÉÈË
+// æ ¹æ®è§„åˆ™è¿‡æ»¤å‡ºzpr
 var swindlePersonAll = hc.sql("select coi.sus_swindle_num,i.city as phone_location,i.operator as phone_provider,coi.inDivOut,coi.day_count,coi.find_time from callOutIn as coi,ren.phoneindex as i,ren.swindle_rule as r where substr(coi.sus_swindle_num,-11,7)=i.section and coi.inDivOut<=ceil(r.in_dive_out/100) and coi.day_count>=r.day_count")
 swindlePersonAll.registerTempTable("swindlePersonAll")
 
-// ´ÓÒÉËÆÕ©Æ­ÈËÖĞÈ¥³ıÒÑ¾­ÎªÕ©Æ­ÈËµÄÊı¾İ
+// ä»ç–‘ä¼¼listä¸­å»é™¤å·²ç»ä¸ºzpçš„æ•°æ®
 var swindleAlready = hc.sql("select swindlePersonAll.* from swindlePersonAll,ren.sblack where swindlePersonAll.sus_swindle_num=sblack.phoneNum")
 var swindlePerson = swindlePersonAll.except(swindleAlready).show
